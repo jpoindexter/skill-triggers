@@ -1,0 +1,33 @@
+{
+  "name": "skill-triggers",
+  "version": "0.1.0",
+  "description": "Declarative event-fired triggers for agent skills. Add a `triggers:` field to any SKILL.md and compile it into Vanta and Claude Code hooks.",
+  "type": "module",
+  "bin": { "skill-triggers": "dist/cli.js" },
+  "exports": { ".": "./dist/index.js" },
+  "files": ["dist", "README.md", "LICENSE"],
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "cli": "tsx src/cli.ts"
+  },
+  "keywords": [
+    "skills",
+    "ai-agents",
+    "claude-code",
+    "vanta",
+    "hooks",
+    "agent-skills",
+    "prompt-engineering",
+    "automation"
+  ],
+  "license": "MIT",
+  "author": "jpoindexter",
+  "repository": { "type": "git", "url": "git+https://github.com/jpoindexter/skill-triggers.git" },
+  "engines": { "node": ">=18" },
+  "devDependencies": {
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.9"
+  }
+}
