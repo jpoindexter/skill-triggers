@@ -3,6 +3,7 @@ export { parseSkill } from "./frontmatter.js";
 export {
   compileToVanta,
   compileToClaude,
+  claudeToolMap,
   buildTriggerNote,
   emitCommand,
   slugify,

@@ -21,8 +21,30 @@ export const KNOWN_EVENTS: readonly string[] = [
 ];
 const KNOWN = new Set(KNOWN_EVENTS);
 
-/** Claude Code v1 injects context only on these events. */
-const CLAUDE_EVENTS = new Set(["Stop", "UserPromptSubmit"]);
+/** Claude Code events the compiler targets (PreToolUse via the tool map below). */
+const CLAUDE_EVENTS = new Set(["Stop", "UserPromptSubmit", "PreToolUse"]);
+
+/** Vanta tool name (a trigger `match`) → Claude matcher + an optional command
+ *  substring the emitter must find in `tool_input.command`. Unknown → used as-is. */
+const VANTA_TO_CLAUDE: Record<string, { matcher: string; inputContains?: string }> = {
+  git_push: { matcher: "Bash", inputContains: "git push" },
+  git_commit: { matcher: "Bash", inputContains: "git commit" },
+  shell_cmd: { matcher: "Bash" },
+  run_code: { matcher: "Bash" },
+  write_file: { matcher: "Write|Edit" },
+  edit_file: { matcher: "Edit" },
+  read_file: { matcher: "Read" },
+  grep_files: { matcher: "Grep" },
+  glob_files: { matcher: "Glob" },
+  web_fetch: { matcher: "WebFetch" },
+  web_search: { matcher: "WebSearch" },
+};
+
+/** Resolve a trigger `match` to a Claude matcher + optional input guard. Pure. */
+export function claudeToolMap(match: string | undefined): { matcher: string; inputContains?: string } {
+  if (!match) return { matcher: "" };
+  return VANTA_TO_CLAUDE[match] ?? { matcher: match };
+}
 
 /** Slugify a skill name into a directory/id-safe token. */
 export function slugify(name: string): string {
@@ -74,9 +96,14 @@ export function compileToClaude(skill: ParsedSkill, bin = "vanta"): ClaudeEntry[
   const seen = new Set<string>();
   const out: ClaudeEntry[] = [];
   for (const t of skill.meta.triggers ?? []) {
-    if (!CLAUDE_EVENTS.has(t.event) || seen.has(t.event)) continue;
-    seen.add(t.event);
-    out.push({ event: t.event, matcher: "", command: `${emitCommand(slug, t.event, bin)} 2>/dev/null` });
+    if (!CLAUDE_EVENTS.has(t.event)) continue;
+    const matcher = t.event === "PreToolUse" ? claudeToolMap(t.match).matcher : "";
+    const key = `${t.event}:${matcher}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    // `--claude` tells the emitter to read Claude's stdin payload + emit Claude's
+    // hookSpecificOutput JSON (input-gated for PreToolUse).
+    out.push({ event: t.event, matcher, command: `${emitCommand(slug, t.event, bin)} --claude 2>/dev/null` });
   }
   return out;
 }

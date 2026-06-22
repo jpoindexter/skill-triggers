@@ -43,10 +43,18 @@ agent applies the know-how itself:
 
 | Harness | Real context injection on |
 |---|---|
-| **Vanta** | `Stop` (`additionalContext`); `PreToolUse` can block/advise |
-| **Claude Code** | `UserPromptSubmit`, `PreToolUse` (stdout → context); `Stop` |
+| **Vanta** | `Stop` (`additionalContext`); `PreToolUse` can block/advise; `PostToolUse` on error |
+| **Claude Code** | `PreToolUse` (`hookSpecificOutput.additionalContext`), `UserPromptSubmit`, `Stop` |
 
 The compiler degrades unsupported events to advisory rather than failing.
+
+### Cross-harness tool names
+
+Claude Code's tool names differ from Vanta's (a git push is a `Bash` call, not a `git_push`
+tool). The compiler maps `match` accordingly — `git_push` → matcher `Bash` + the emitter
+confirms the command contains `git push` before firing — so a `PreToolUse` trigger behaves the
+same in both harnesses, with no every-call noise. (`write_file`→`Write|Edit`, `read_file`→`Read`, …;
+unknown names pass through unchanged.)
 
 ## Use it
 
@@ -76,10 +84,11 @@ const merged = mergeVanta(existingHooksJson, hooks);
 
 ## Status
 
-v0.1 — the convention + reference compiler + CLI. The compiler is the reference implementation
-of the `triggers:` convention; Vanta ships a native integration of the same logic. Roadmap:
-fine-grained Claude `PreToolUse` tool-name mapping, an `agent`-mode firing option, and an npm
-release that Vanta consumes directly.
+v0.1 — the convention + reference compiler + CLI, with cross-harness `PreToolUse` tool mapping
+for Vanta and Claude Code. The compiler is the reference implementation of the `triggers:`
+convention; Vanta ships a native integration of the same logic. Roadmap: an `agent`-mode firing
+option (run a skill as a worker), `PostToolUse` support on Claude, and an npm release Vanta
+consumes directly.
 
 ## License
 
