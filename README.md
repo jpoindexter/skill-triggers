@@ -44,7 +44,7 @@ agent applies the know-how itself:
 | Harness | Real context injection on |
 |---|---|
 | **Vanta** | `Stop` (`additionalContext`); `PreToolUse` can block/advise; `PostToolUse` on error |
-| **Claude Code** | `PreToolUse` (`hookSpecificOutput.additionalContext`), `UserPromptSubmit`, `Stop` |
+| **Claude Code** | `PreToolUse`, `UserPromptSubmit`, `Stop`, and tool errors (a `PostToolUse`+error trigger → `PostToolUseFailure`) — all via `hookSpecificOutput.additionalContext` |
 
 The compiler degrades unsupported events to advisory rather than failing.
 
@@ -84,11 +84,11 @@ const merged = mergeVanta(existingHooksJson, hooks);
 
 ## Status
 
-v0.1 — the convention + reference compiler + CLI, with cross-harness `PreToolUse` tool mapping
-for Vanta and Claude Code. The compiler is the reference implementation of the `triggers:`
-convention; Vanta ships a native integration of the same logic. Roadmap: an `agent`-mode firing
-option (run a skill as a worker), `PostToolUse` support on Claude, and an npm release Vanta
-consumes directly.
+v0.1 — the convention + reference compiler + CLI, with cross-harness event mapping for Vanta and
+Claude Code: `PreToolUse` (tool-name-mapped), `Stop`, `UserPromptSubmit`, and tool errors
+(`PostToolUse`+error → `PostToolUseFailure`). The compiler is the reference implementation of the
+`triggers:` convention; Vanta ships a native integration of the same logic. Roadmap: an
+`agent`-mode firing option (run a skill as a worker) and an npm release Vanta consumes directly.
 
 ## License
 

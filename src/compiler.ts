@@ -21,8 +21,17 @@ export const KNOWN_EVENTS: readonly string[] = [
 ];
 const KNOWN = new Set(KNOWN_EVENTS);
 
-/** Claude Code events the compiler targets (PreToolUse via the tool map below). */
-const CLAUDE_EVENTS = new Set(["Stop", "UserPromptSubmit", "PreToolUse"]);
+/** Claude Code events the compiler targets. PreToolUse maps tool names via the
+ *  map below; PostToolUse+error maps to PostToolUseFailure (Claude's PostToolUse
+ *  fires only on SUCCESS — a tool error is a separate event). */
+const CLAUDE_EVENTS = new Set(["Stop", "UserPromptSubmit", "PreToolUse", "PostToolUse", "PostToolUseFailure"]);
+
+/** A Vanta `PostToolUse` + `when:"errors…"` means "on tool error" → Claude
+ *  `PostToolUseFailure`. Other events pass through. Pure. */
+function claudeEventFor(t: { event: string; when?: string }): string {
+  if (t.event === "PostToolUse" && /error/i.test(t.when ?? "")) return "PostToolUseFailure";
+  return t.event;
+}
 
 /** Vanta tool name (a trigger `match`) → Claude matcher + an optional command
  *  substring the emitter must find in `tool_input.command`. Unknown → used as-is. */
@@ -97,13 +106,15 @@ export function compileToClaude(skill: ParsedSkill, bin = "vanta"): ClaudeEntry[
   const out: ClaudeEntry[] = [];
   for (const t of skill.meta.triggers ?? []) {
     if (!CLAUDE_EVENTS.has(t.event)) continue;
-    const matcher = t.event === "PreToolUse" ? claudeToolMap(t.match).matcher : "";
-    const key = `${t.event}:${matcher}`;
+    const event = claudeEventFor(t);
+    const matcher = t.match ? claudeToolMap(t.match).matcher : "";
+    const key = `${event}:${matcher}`;
     if (seen.has(key)) continue;
     seen.add(key);
     // `--claude` tells the emitter to read Claude's stdin payload + emit Claude's
-    // hookSpecificOutput JSON (input-gated for PreToolUse).
-    out.push({ event: t.event, matcher, command: `${emitCommand(slug, t.event, bin)} --claude 2>/dev/null` });
+    // hookSpecificOutput JSON (input-gated for PreToolUse; PostToolUseFailure fires
+    // only on error, so no gate is needed there).
+    out.push({ event, matcher, command: `${emitCommand(slug, event, bin)} --claude 2>/dev/null` });
   }
   return out;
 }

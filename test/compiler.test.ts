@@ -31,6 +31,13 @@ describe("compileToClaude", () => {
     expect(pre.matcher).toBe("Bash");
     expect(pre.command).toContain("--claude");
   });
+
+  it("maps a PostToolUse+error trigger to PostToolUseFailure", () => {
+    const out = compileToClaude(skill([{ event: "PostToolUse", when: "errors>=3" }]));
+    expect(out).toHaveLength(1);
+    expect(out[0]!.event).toBe("PostToolUseFailure");
+    expect(out[0]!.command).toContain("PostToolUseFailure --claude");
+  });
 });
 
 describe("claudeToolMap", () => {
